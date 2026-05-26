@@ -55,6 +55,8 @@
     let muteBtn           = null;
     let muteBtnDodgeCount = 0;
     let muteBtnVisible    = false;
+    let hintOpacity       = 0;
+    let hintShown         = false;
 
     let bloodDrops   = [];
     let bloodPuddles = [];
@@ -247,6 +249,7 @@
       updateEnding(dt);
 
       drawCursor();
+      drawHint(dt);
       handleReveal(dt);
     };
 
@@ -298,8 +301,8 @@
 
     // ── Stage transitions ─────────────────────────────────────
     function checkStageTransitions() {
-      if      (stageTimer >= 28 && stage < 3) enterStage3();
-      else if (stageTimer >= 15 && stage < 2) enterStage2();
+      if      (stageTimer >= 15 && stage < 3) enterStage3();
+      else if (stageTimer >= 8  && stage < 2) enterStage2();
       else if (stageTimer >  0  && stage < 1) { stage = 1; triggerReveal(STAGE_MESSAGES[1]); }
     }
 
@@ -715,6 +718,7 @@
           }
           muteBtnDodgeCount = 0;
           muteBtnVisible = false;
+          hintOpacity = 0; hintShown = false;
 
           const canvasEl = document.getElementById('canvas-screen');
           const introEl  = document.getElementById('intro-screen');
@@ -932,6 +936,29 @@
       p.line(p.mouseX + 6,  p.mouseY,      p.mouseX + 16, p.mouseY);
       p.line(p.mouseX,      p.mouseY - 16, p.mouseX,      p.mouseY - 6);
       p.line(p.mouseX,      p.mouseY + 6,  p.mouseX,      p.mouseY + 16);
+    }
+
+    // ── Movement hint ─────────────────────────────────────────
+    function drawHint(dt) {
+      if (hintShown) return;
+      if (stage > 0) { hintShown = true; hintOpacity = 0; return; }
+
+      if (hintOpacity < 255 && stageTimer === 0) {
+        hintOpacity = Math.min(255, hintOpacity + dt * 80);
+      }
+
+      if (hintOpacity > 0) {
+        p.textFont('monospace');
+        p.textSize(11);
+        p.textAlign(p.LEFT);
+        p.noStroke();
+        p.fill(139, 0, 0, hintOpacity * 0.7);
+        p.text('move. it is listening.', p.mouseX + 18, p.mouseY - 10);
+
+        if (p.millis() > 4000) {
+          hintOpacity -= dt * 45;
+        }
+      }
     }
 
     // ── Reveal overlay ────────────────────────────────────────
