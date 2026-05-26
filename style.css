@@ -1,0 +1,171 @@
+/* =====================================================
+   Before You Knew — stylesheet
+   ===================================================== */
+
+/* ---------- Reset & base ---------- */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+}
+
+body {
+  background: #000000;
+  color: #ffffff;
+  font-family: 'Share Tech Mono', monospace;
+  overflow: hidden;
+}
+
+/* ---------- Utility ---------- */
+.hidden {
+  display: none !important;
+}
+
+.fade-out {
+  animation: fadeOut 1s ease forwards;
+}
+
+.fade-in {
+  animation: fadeIn 1s ease forwards;
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ---------- Intro screen ---------- */
+#intro-screen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  z-index: 100;
+  background: #000000;
+}
+
+#intro-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-weight: 300;
+  font-size: clamp(2.5rem, 8vw, 5.5rem);
+  color: #ffffff;
+  letter-spacing: 0.08em;
+  text-align: center;
+  animation: titleReveal 2s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+@keyframes titleReveal {
+  from {
+    opacity: 0;
+    letter-spacing: 0.5em;
+  }
+  to {
+    opacity: 1;
+    letter-spacing: 0.08em;
+  }
+}
+
+#intro-tagline {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: clamp(0.65rem, 1.8vw, 0.85rem);
+  color: #8B0000;
+  letter-spacing: 0.18em;
+  text-transform: lowercase;
+  text-align: center;
+  animation: fadeIn 1.8s 0.6s ease both;
+}
+
+/* ---------- Eye ---------- */
+#intro-eye {
+  width: clamp(220px, 40vw, 420px);
+  height: auto;
+  display: block;
+  margin: 0.5rem auto;
+  transition: transform 0.35s ease, filter 0.35s ease;
+  cursor: default;
+}
+
+#intro-eye:hover {
+  transform: scale(1.06);
+  filter: drop-shadow(0 0 12px #cc0000) drop-shadow(0 0 28px #8B0000);
+}
+
+#intro-hint {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: clamp(0.6rem, 1.6vw, 0.78rem);
+  color: #8B0000;
+  letter-spacing: 0.2em;
+  text-align: center;
+  animation: fadeIn 0.8s ease both;
+}
+
+/* ---------- Canvas screen ---------- */
+#canvas-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  background: #000000;
+}
+
+#canvas-screen canvas {
+  display: block;
+}
+
+/* ---------- Mute button ---------- */
+#mute-btn {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: 64px;
+  height: 64px;
+  cursor: pointer;
+  z-index: 200;
+  display: none;
+  user-select: none;
+  transition: top 0.4s ease, right 0.4s ease,
+              left 0.4s ease, bottom 0.4s ease;
+}
+
+/* ---------- Reveal overlay ---------- */
+#reveal-text {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 50;
+  pointer-events: none;
+  text-align: center;
+}
+
+#reveal-line {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: clamp(0.85rem, 2.3vw, 1.2rem);
+  color: #f0e6d6;
+  letter-spacing: 0.22em;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+  text-shadow: 0 0 12px rgba(0, 0, 0, 0.9), 0 0 24px rgba(80, 0, 0, 0.6);
+}
+
+#reveal-text.show #reveal-line {
+  animation: revealPulse 2.4s ease-in-out infinite;
+}
+
+@keyframes revealPulse {
+  0%, 100% { opacity: 0.2; }
+  50%       { opacity: 1; }
+}

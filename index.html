@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Before You Knew</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,300&family=Share+Tech+Mono&display=swap"
+    rel="stylesheet"
+  />
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="intro-screen">
+    <h1 id="intro-title">Before You Knew</h1>
+    <p id="intro-tagline">it was watching before you arrived</p>
+    <img id="intro-eye" src="images/eye_closed.png" alt="" />
+    <p id="intro-hint" class="hidden">&mdash; touch the eye to enter &mdash;</p>
+  </div>
+
+  <!-- Preload eye images via img tags (works on file:// protocol) -->
+  <img id="img-eye-open"   src="images/eye_open.png"   style="display:none" alt="" />
+  <img id="img-eye-closed" src="images/eye_closed.png" style="display:none" alt="" />
+  <img id="img-eye-wide"   src="images/eye_wide.png"   style="display:none" alt="" />
+  <img id="img-iris"       src="images/iris.png"       style="display:none" alt="" />
+  <img id="img-heart"      src="images/heart.png"        style="display:none" alt="" />
+
+  <div id="canvas-screen" class="hidden">
+    <div id="p5-container"></div>
+    <div id="mute-btn"></div>
+  </div>
+
+  <div id="reveal-text" class="hidden">
+    <span id="reveal-line"></span>
+  </div>
+
+  <script>
+    (function () {
+      const eye = document.getElementById('intro-eye');
+      const hint = document.getElementById('intro-hint');
+      const intro = document.getElementById('intro-screen');
+      const canvasScreen = document.getElementById('canvas-screen');
+
+      let clickable = false;
+
+      window.setTimeout(function () {
+        eye.src = 'images/eye_open.png';
+      }, 1200);
+
+      window.setTimeout(function () {
+        hint.classList.remove('hidden');
+        clickable = true;
+        eye.style.cursor = 'pointer';
+      }, 2500);
+
+      eye.addEventListener('click', function () {
+        if (!clickable) return;
+        clickable = false;
+        intro.style.pointerEvents = 'none'; // stop blocking mouse immediately
+        intro.classList.add('fade-out');
+        window.setTimeout(function () {
+          intro.classList.add('hidden');
+          canvasScreen.classList.remove('hidden');
+          canvasScreen.classList.add('fade-in');
+          if (typeof window.startSketch === 'function') {
+            window.startSketch();
+          }
+        }, 1000);
+      });
+    })();
+  </script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.4/p5.min.js"></script>
+  <script src="sketch.js"></script>
+</body>
+</html>
