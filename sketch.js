@@ -460,7 +460,7 @@
 
       const isSmallScreen = p.width < 1600;
       const baseSize = isSmallScreen
-        ? Math.min(p.width * 0.4, p.height * 0.55)
+        ? Math.min(p.width * 0.28, p.height * 0.38)
         : 1100;
       const fs = heartScale * heartBeatScale;
       const hw = baseSize * fs;
