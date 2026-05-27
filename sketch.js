@@ -1,15 +1,10 @@
-// Before You Knew — sketch.js
-// p5 instance mode
-
 (function () {
   const sketch = function (p) {
 
-    // ── Assets ────────────────────────────────────────────────
     let imgEyeOpen, imgEyeClosed, imgEyeWide;
     let imgIris = null;
     let imgHeart = null;
 
-    // ── State ─────────────────────────────────────────────────
     let started       = false;
     let stage         = 0;
     let stageTimer    = 0;
@@ -19,26 +14,22 @@
     let lastMouseX = 0;
     let lastMouseY = 0;
 
-    let tracePoints = [];  // { x, y, age, opacity }
-    let eyes        = [];  // eye objects
-    let scars       = [];  // { x, y, time, rippleR, rippleOpacity }
+    let tracePoints = [];
+    let eyes        = [];
+    let scars       = [];
 
-    // Stage-transition reveal state
     let revealActive    = false;
     let revealText      = '';
     let revealCountdown = 0;
 
-    // Periodic cycling reveal state (stage 2+)
     let revealIndex          = 0;
     let revealCycleTimer     = 0;
     let revealCycleShowing   = false;
     let revealCycleCountdown = 0;
 
-    // Heartbeat state
     let heartbeatTimer = 0;
     let heartbeatFlash = 0;
 
-    // Heart-burst transition state
     let heartActive       = false;
     let heartScale        = 0;
     let heartOpacity      = 0;
@@ -55,6 +46,7 @@
     let muteBtn           = null;
     let muteBtnDodgeCount = 0;
     let muteBtnVisible    = false;
+    let muteBtnTextShowing = false;
     let hintOpacity       = 0;
     let hintShown         = false;
 
@@ -79,7 +71,6 @@
       'it knew before you did'
     ];
 
-    // ── Setup ─────────────────────────────────────────────────
     p.setup = function () {
       p.createCanvas(p.windowWidth, p.windowHeight);
       p.imageMode(p.CENTER);
@@ -87,8 +78,7 @@
       lastMouseY = p.mouseY;
 
       window.startSketch = function () {
-        p.noCursor(); // hide system cursor only after entering canvas
-        // Convert HTML img elements → p5.Graphics for full p5 compatibility
+        p.noCursor();
         imgEyeOpen   = htmlToP5(document.getElementById('img-eye-open'));
         imgEyeClosed = htmlToP5(document.getElementById('img-eye-closed'));
         imgEyeWide   = htmlToP5(document.getElementById('img-eye-wide'));
@@ -112,7 +102,7 @@
         muteBtnVisible = true;
 
         muteBtn.addEventListener('mouseenter', function () {
-          if (muteBtnDodgeCount >= 6) return;
+          if (muteBtnDodgeCount >= 6 || !muteBtnVisible) return;
           muteBtnDodgeCount++;
 
           const margin = 80;
@@ -126,20 +116,26 @@
           muteBtn.style.bottom = 'auto';
 
           if (muteBtnDodgeCount === 6) {
-            muteBtn.style.display = 'none';
-            muteBtnVisible = false;
+            setTimeout(() => {
+              muteBtn.style.display = 'none';
+              muteBtnVisible = false;
+              muteBtnTextShowing = true;
 
-            const revealEl = document.getElementById('reveal-text');
-            const lineEl   = document.getElementById('reveal-line');
-            if (revealEl && lineEl) {
-              lineEl.textContent = "you can't stop what you've already started";
-              revealEl.classList.remove('hidden');
-              revealEl.classList.add('show');
-              setTimeout(() => {
+              const revealEl = document.getElementById('reveal-text');
+              const lineEl = document.getElementById('reveal-line');
+              if (revealEl && lineEl) {
+                revealEl.classList.remove('hidden');
                 revealEl.classList.remove('show');
-                revealEl.classList.add('hidden');
-              }, 3500);
-            }
+                lineEl.textContent = "you can't stop what you've already started";
+                void revealEl.offsetWidth;
+                revealEl.classList.add('show');
+                setTimeout(() => {
+                  muteBtnTextShowing = false;
+                  revealEl.classList.remove('show');
+                  revealEl.classList.add('hidden');
+                }, 4000);
+              }
+            }, 100);
           }
         });
 
@@ -159,9 +155,7 @@
       p.resizeCanvas(p.windowWidth, p.windowHeight);
     };
 
-    // ── Draw ──────────────────────────────────────────────────
     p.draw = function () {
-      // Always draw cursor so it's visible during intro too
       if (!started) {
         drawCursor();
         return;
@@ -177,7 +171,6 @@
         shakeAmount *= 0.85;
       }
 
-      // Mouse movement detection
       const moved = p.dist(p.mouseX, p.mouseY, lastMouseX, lastMouseY) > 1.5;
       if (moved) {
         stageTimer    += dt;
@@ -190,10 +183,8 @@
       lastMouseX = p.mouseX;
       lastMouseY = p.mouseY;
 
-      // Stage transitions
       checkStageTransitions();
 
-      // Ambient volume by stage
       if (ambientSound) {
         let targetVol = 0.15;
         if (stage === 2) targetVol = 0.35;
@@ -202,7 +193,6 @@
         ambientSound.volume += (targetVol - ambientSound.volume) * 0.02;
       }
 
-      // Age trace points
       for (let i = tracePoints.length - 1; i >= 0; i--) {
         const tp = tracePoints[i];
         tp.age     += dt;
@@ -211,7 +201,6 @@
         if (tp.age > 30) tracePoints.splice(i, 1);
       }
 
-      // Age scar ripples
       for (const s of scars) {
         if (s.rippleOpacity > 0) {
           s.rippleR       += dt * 18;
@@ -227,16 +216,13 @@
       updateBurst(dt);
       drawBurstParticles(dt);
 
-      // Vignette — dark edges, always present
       drawVignette();
 
-      // Heartbeat pulse — suppressed once heart is showing
       if (!heartActive) {
         updateHeartbeat(dt);
         drawHeartbeatFlash();
       }
 
-      // Idle overlay — subtle pulsing darkness after 10s
       if (idleTimer > 10 && !heartActive) {
         const pulse = Math.sin(p.millis() * 0.001) * 0.5 + 0.5;
         p.noStroke();
@@ -253,9 +239,7 @@
       handleReveal(dt);
     };
 
-    // ── Key events ───────────────────────────────────────────
     p.keyPressed = function () {
-      // Press H to skip straight to heart (debug / demo shortcut)
       if (!started) return;
       if (p.key === 'h' || p.key === 'H') {
         eyes = [];
@@ -268,7 +252,6 @@
       }
     };
 
-    // ── Mouse events ──────────────────────────────────────────
     p.mouseClicked = function () {
       if (heartActive) {
         const d = p.dist(p.mouseX, p.mouseY, p.width / 2, p.height / 2);
@@ -281,7 +264,6 @@
       }
       if (!started) return;
 
-      // Stage 3 — click on the giant eye starts the burst → heart transition
       if (stage === 3 && eyes.length > 0 && burstState === 0) {
         const e = eyes[0];
         const d = p.dist(p.mouseX, p.mouseY, e.x, e.y);
@@ -295,11 +277,9 @@
       if (stage >= 3) return;
 
       spawnEye(p.mouseX, p.mouseY, false);
-      // Scar mark (timestamp)
       scars.push({ x: p.mouseX, y: p.mouseY, time: p.millis(), rippleR: 0, rippleOpacity: 120 });
     };
 
-    // ── Stage transitions ─────────────────────────────────────
     function checkStageTransitions() {
       if      (stageTimer >= 15 && stage < 3) enterStage3();
       else if (stageTimer >= 8  && stage < 2) enterStage2();
@@ -326,14 +306,11 @@
       revealCountdown = 6;
     }
 
-    // ── Heartbeat ─────────────────────────────────────────────
     function updateHeartbeat(dt) {
       heartbeatTimer += dt;
-      // Period gets shorter as stage increases (more intense)
       const period = stage >= 3 ? 0.75 : stage >= 2 ? 1.05 : 1.5;
       const ht = heartbeatTimer % period;
 
-      // lub-dub double-beat shape
       if (ht < 0.04) {
         heartbeatFlash = p.map(ht, 0, 0.04, 0, 1);
       } else if (ht < 0.13) {
@@ -349,23 +326,19 @@
 
     function drawHeartbeatFlash() {
       if (heartbeatFlash <= 0) return;
-      // Max alpha scales up slightly with stage
       const maxAlpha = stage >= 3 ? 70 : stage >= 2 ? 52 : 38;
       p.noStroke();
       p.fill(160, 0, 0, heartbeatFlash * maxAlpha);
       p.rect(0, 0, p.width, p.height);
     }
 
-    // ── Vignette ──────────────────────────────────────────────
     function drawVignette() {
       const ctx = p.drawingContext;
       const cx  = p.width  / 2;
       const cy  = p.height / 2;
-      // Inner edge: clear centre; outer edge: dark corners
       const inner = Math.min(cx, cy) * 0.35;
       const outer = Math.max(cx, cy) * 1.55;
 
-      // Opacity deepens at stage 3 or during long idle
       const alpha = stage >= 3 ? 0.92 : idleTimer > 10 ? 0.82 : 0.72;
 
       const grad = ctx.createRadialGradient(cx, cy, inner, cx, cy, outer);
@@ -379,7 +352,6 @@
       ctx.restore();
     }
 
-    // ── Burst → Heart transition ──────────────────────────────
     function playHeartbeat() {
       if (!heartbeatSound) return;
       heartbeatSound.currentTime = 0;
@@ -390,7 +362,6 @@
       if (burstState === 0) return;
 
       if (burstState === 1) {
-        // Pre-burst hammering: 3.0s of violent shaking + flashing
         burstTimer += dt;
         if (eyes.length > 0) {
           eyes[0].targetScale = 18 + Math.sin(burstTimer * 30) * 5;
@@ -403,7 +374,6 @@
         if (burstTimer >= 3.0) {
           burstState = 2;
           burstTimer = 0;
-          // Spawn 40 burst particles from giant eye centre
           if (eyes.length > 0) {
             const ex = eyes[0].x;
             const ey = eyes[0].y;
@@ -425,7 +395,6 @@
       }
 
       if (burstState === 2) {
-        // Flash + eye fade: 0.35s
         burstTimer += dt;
         p.noStroke();
         p.fill(255, 255, 255, p.map(burstTimer, 0, 0.15, 220, 0, true));
@@ -459,7 +428,7 @@
         const bp = burstParticles[i];
         bp.x       += bp.vx * dt;
         bp.y       += bp.vy * dt;
-        bp.vy      += 200 * dt; // gravity
+        bp.vy      += 200 * dt;
         bp.opacity -= dt * 80;
         if (bp.opacity <= 0) {
           burstParticles.splice(i, 1);
@@ -479,11 +448,10 @@
       heartOpacity = Math.min(255, heartOpacity + dt * 45);
       heartScale  += (1.0 - heartScale) * dt * 2.0;
 
-      // Beat rhythm — sound and visual in sync
       heartBeatTimer += dt;
       if (heartBeatTimer >= heartBeatInterval) {
         heartBeatTimer    = 0;
-        heartBeatScale    = 1.28; // visual spike on same frame as sound
+        heartBeatScale    = 1.28;
         heartBeatInterval = Math.max(0.65, heartBeatInterval - 0.012);
         playHeartbeat();
         spawnBlood();
@@ -491,10 +459,11 @@
       heartBeatScale += (1.0 - heartBeatScale) * dt * 7;
 
       const fs  = heartScale * heartBeatScale;
-      const hw  = 1100 * fs;
-      const hh  = 1320 * fs;
+      const maxHeartW = p.width * 0.65;
+      const baseHW = Math.min(1100 * fs, maxHeartW);
+      const hw  = baseHW;
+      const hh  = baseHW * 1.2;
 
-      // Heart image (fallback: solid red ellipse if image not loaded)
       if (imgHeart) {
         p.tint(255, heartOpacity);
         p.image(imgHeart, p.width / 2, p.height / 2, hw, hh);
@@ -506,7 +475,6 @@
       }
     }
 
-    // ── Blood drip system ─────────────────────────────────────
     function spawnBlood() {
       const count = Math.floor(p.random(3, 7));
       for (let i = 0; i < count; i++) {
@@ -532,35 +500,29 @@
     }
 
     function drawBlood(dt) {
-      // Rising blood pool
       if (bloodLevel > 0) {
         const poolY = p.height - (bloodLevel * p.height);
         p.noStroke();
 
-        // Bottom solid pool
         p.fill(50, 0, 0, 230);
         p.rect(0, poolY + 35, p.width, p.height);
 
-        // Wave layer 1 — darkest
         for (let x = -60; x < p.width + 60; x += 18) {
           const wy = poolY + Math.sin((x * 0.035) + p.millis() * 0.0006) * 10;
           p.fill(55, 0, 0, 240);
           p.ellipse(x, wy + 20, 130, 50);
         }
 
-        // Wave layer 2 — slightly lighter, offset
         for (let x = -60; x < p.width + 60; x += 18) {
           const wy = poolY + Math.sin((x * 0.028) + p.millis() * 0.0009 + 1.2) * 8;
           p.fill(65, 0, 0, 180);
           p.ellipse(x, wy + 10, 110, 35);
         }
 
-        // Soft top glow
         p.fill(90, 0, 0, 55);
         p.rect(0, poolY, p.width, 30);
       }
 
-      // Update and draw drops
       for (let i = bloodDrops.length - 1; i >= 0; i--) {
         const d = bloodDrops[i];
 
@@ -601,7 +563,6 @@
         p.pop();
       }
 
-      // Draw and fade puddles
       for (let i = bloodPuddles.length - 1; i >= 0; i--) {
         const pu = bloodPuddles[i];
         pu.opacity -= dt * 18;
@@ -615,7 +576,6 @@
       }
     }
 
-    // ── Ending sequence ───────────────────────────────────────
     function updateEnding(dt) {
       if (bloodLevel >= 1 && !endingActive) {
         endingActive = true;
@@ -633,7 +593,6 @@
       if (!endingActive) return;
       endingTimer += dt;
 
-      // Phase 0 — silence + flatline, screen stays red (6s)
       if (endingPhase === 0) {
         if (endingTimer >= 6) {
           if (flatlineSound) {
@@ -646,7 +605,6 @@
         return;
       }
 
-      // Phase 1 — fade to black (2s)
       if (endingPhase === 1) {
         p.noStroke();
         p.fill(0, 0, 0, dt * 60);
@@ -660,7 +618,6 @@
         return;
       }
 
-      // Phase 2 — text one by one
       if (endingPhase === 2) {
         p.background(0);
         endingLineTimer += dt;
@@ -688,13 +645,11 @@
         return;
       }
 
-      // Phase 3 — fade then reset to intro
       if (endingPhase === 3) {
         p.noStroke();
         p.fill(0, 0, 0, dt * 40);
         p.rect(0, 0, p.width, p.height);
         if (endingTimer >= 2) {
-          // Reset all state
           started = false; stage = 0; stageTimer = 0; idleTimer = 0;
           eyeSpawnAccum = 0; eyes = []; tracePoints = []; scars = [];
           heartActive = false; heartScale = 0; heartOpacity = 0;
@@ -718,6 +673,7 @@
           }
           muteBtnDodgeCount = 0;
           muteBtnVisible = false;
+          muteBtnTextShowing = false;
           hintOpacity = 0; hintShown = false;
 
           const canvasEl = document.getElementById('canvas-screen');
@@ -735,7 +691,6 @@
       }
     }
 
-    // ── Eye system ────────────────────────────────────────────
     function spawnEye(x, y, isFirst) {
       const sizeScale = isFirst ? 1 : p.random(0.4, 2.2);
       eyes.push({
@@ -759,7 +714,6 @@
         eyes.splice(1, eyes.length - 1);
       }
 
-      // Nearest eye to cursor (for idle>3s scale boost)
       let nearestIdx  = 0;
       let nearestDist = Infinity;
       for (let i = 0; i < eyes.length; i++) {
@@ -771,19 +725,16 @@
         const e       = eyes[i];
         const isFirst = i === 0;
 
-        // Fade in
         if (e.fadeIn) {
           e.opacity += dt * 140;
           if (e.opacity >= 255) { e.opacity = 255; e.fadeIn = false; }
         }
 
-        // Open progress
         if (e.opening) {
           e.openProgress += dt * 0.55;
           if (e.openProgress >= 1) { e.openProgress = 1; e.opening = false; }
         }
 
-        // Image selection
         let img;
         if (stage >= 3 && isFirst) {
           img = imgEyeWide;
@@ -795,11 +746,12 @@
           img = imgEyeOpen;
         }
 
-        // Target scale
         if (stage >= 3 && isFirst) {
           e.x = p.width / 2 + (e.baseW * e.scale * 0.08);
           e.y = p.height / 2;
-          e.targetScale = 18;
+          const maxEyeW = p.width * 0.7;
+          const desiredW = e.baseW * 18;
+          e.targetScale = desiredW > maxEyeW ? (maxEyeW / e.baseW) : 18;
         } else if (idleTimer > 6) {
           e.targetScale = 1.25;
         } else {
@@ -807,13 +759,11 @@
         }
         if (idleTimer > 3 && i === nearestIdx) e.targetScale += 0.15;
 
-        // Scale lerp — update BEFORE computing w/h and iris offset
-        // so all values use the same scale this frame
         e.scale += (e.targetScale - e.scale) * dt * 2.2;
 
         const w  = e.baseW * e.scale;
         const h  = e.baseW * e.scale * 0.55;
-        const ps = e.baseW * e.scale * 0.1; // fallback pupil radius
+        const ps = e.baseW * e.scale * 0.1;
 
         const worldAngle = Math.atan2(p.mouseY - e.y, p.mouseX - e.x);
         let localAngle = worldAngle - e.rotation;
@@ -830,7 +780,6 @@
 
         const irisD = Math.min(h * 0.38, w * 0.18);
 
-        // Draw eye (rotated + flipped)
         p.push();
         p.translate(e.x, e.y);
         p.rotate(e.rotation);
@@ -841,14 +790,12 @@
           p.image(img, 0, 0, w, h);
           p.noTint();
         } else {
-          // Fallback eye shape
           p.noFill();
           p.stroke(139, 0, 0, e.opacity);
           p.strokeWeight(1.5);
           p.ellipse(0, 0, w, h);
         }
 
-        // ── Iris / pupil — clipped to red oval inside the eye ──
         if (!(stage >= 3 && isFirst)) {
           p.push();
           p.beginClip();
@@ -879,7 +826,6 @@
       }
     }
 
-    // ── Draw: trace ───────────────────────────────────────────
     function drawTrace() {
       p.noStroke();
       for (const tp of tracePoints) {
@@ -892,7 +838,6 @@
       }
     }
 
-    // ── Draw: scars ───────────────────────────────────────────
     function drawScars() {
       p.textFont('monospace');
       p.textSize(9);
@@ -921,7 +866,6 @@
       }
     }
 
-    // ── Draw: cursor ──────────────────────────────────────────
     function drawCursor() {
       p.noStroke();
       p.fill(204, 0, 0, 90);
@@ -938,7 +882,6 @@
       p.line(p.mouseX,      p.mouseY + 6,  p.mouseX,      p.mouseY + 16);
     }
 
-    // ── Movement hint ─────────────────────────────────────────
     function drawHint(dt) {
       if (hintShown) return;
       if (stage > 0) { hintShown = true; hintOpacity = 0; return; }
@@ -961,12 +904,12 @@
       }
     }
 
-    // ── Reveal overlay ────────────────────────────────────────
     function handleReveal(dt) {
       if (endingActive) {
         document.getElementById('reveal-text').classList.add('hidden');
         return;
       }
+      if (muteBtnTextShowing) return;
 
       const revealEl = document.getElementById('reveal-text');
       const lineEl   = document.getElementById('reveal-line');
@@ -1015,7 +958,7 @@
       }
     }
 
-  }; // end sketch
+  };
 
   new p5(sketch, 'p5-container');
 })();
