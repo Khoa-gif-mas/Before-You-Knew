@@ -458,11 +458,13 @@
       }
       heartBeatScale += (1.0 - heartBeatScale) * dt * 7;
 
-      const fs  = heartScale * heartBeatScale;
-      const maxHeartW = p.width * 0.65;
-      const baseHW = Math.min(1100 * fs, maxHeartW);
-      const hw  = baseHW;
-      const hh  = baseHW * 1.2;
+      const isSmallScreen = p.width < 1400;
+      const baseSize = isSmallScreen
+        ? Math.min(p.width * 0.6, p.height * 0.8)
+        : 1100;
+      const fs = heartScale * heartBeatScale;
+      const hw = baseSize * fs;
+      const hh = baseSize * 1.2 * fs;
 
       if (imgHeart) {
         p.tint(255, heartOpacity);
